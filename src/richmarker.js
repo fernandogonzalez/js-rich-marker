@@ -37,12 +37,6 @@ function RichMarker(opt_options) {
    */
   this.ready_ = false;
 
-  /**
-   * @type {boolean}
-   * @private
-   */
-  this.dragging_ = false;
-
   if (opt_options['visible'] == undefined) {
     opt_options['visible'] = true;
   }
@@ -145,43 +139,6 @@ RichMarker.prototype.zIndex_changed = function() {
 };
 RichMarker.prototype['zIndex_changed'] = RichMarker.prototype.zIndex_changed;
 
-/**
- * Whether the marker is draggable or not.
- *
- * @return {boolean} True if the marker is draggable.
- */
-RichMarker.prototype.getDraggable = function() {
-  return /** @type {boolean} */ (this.get('draggable'));
-};
-RichMarker.prototype['getDraggable'] = RichMarker.prototype.getDraggable;
-
-
-/**
- * Sets the marker to be draggable or not.
- *
- * @param {boolean} draggable If the marker is draggable or not.
- */
-RichMarker.prototype.setDraggable = function(draggable) {
-  this.set('draggable', !!draggable);
-};
-RichMarker.prototype['setDraggable'] = RichMarker.prototype.setDraggable;
-
-
-/**
- * Draggable property changed callback.
- */
-RichMarker.prototype.draggable_changed = function() {
-  if (this.ready_) {
-    if (this.getDraggable()) {
-      this.addDragging_(this.markerWrapper_);
-    } else {
-      this.removeDragListeners_();
-    }
-  }
-};
-RichMarker.prototype['draggable_changed'] =
-    RichMarker.prototype.draggable_changed;
-
 
 /**
  * Gets the postiton of the marker.
@@ -203,16 +160,6 @@ RichMarker.prototype.setPosition = function(position) {
   this.set('position', position);
 };
 RichMarker.prototype['setPosition'] = RichMarker.prototype.setPosition;
-
-
-/**
- * Position changed event.
- */
-RichMarker.prototype.position_changed = function() {
-  this.draw();
-};
-RichMarker.prototype['position_changed'] =
-    RichMarker.prototype.position_changed;
 
 
 /**
@@ -329,19 +276,6 @@ RichMarker.prototype.content_changed = function() {
     var that = this;
     var images = this.markerContent_.getElementsByTagName('IMG');
     for (var i = 0, image; image = images[i]; i++) {
-      // By default, a browser lets a image be dragged outside of the browser,
-      // so by calling preventDefault we stop this behaviour and allow the image
-      // to be dragged around the map and now out of the browser and onto the
-      // desktop.
-      google.maps.event.addDomListener(image, 'mousedown', function(e) {
-        if (that.getDraggable()) {
-          if (e.preventDefault) {
-            e.preventDefault();
-          }
-          e.returnValue = false;
-        }
-      });
-
       // Because we don't know the size of an image till it loads, add a
       // listener to the image load so the marker can resize and reposition
       // itself to be the correct height.
@@ -396,191 +330,6 @@ RichMarker.prototype.setCursor_ = function(whichCursor) {
 
   if (this.markerWrapper_.style.cursor != cursor) {
     this.markerWrapper_.style.cursor = cursor;
-  }
-};
-
-/**
- * Start dragging.
- *
- * @param {Event} e The event.
- */
-RichMarker.prototype.startDrag = function(e) {
-  if (!this.getDraggable()) {
-    return;
-  }
-
-  if (!this.dragging_) {
-    this.dragging_ = true;
-    var map = this.getMap();
-    this.mapDraggable_ = map.get('draggable');
-    map.set('draggable', false);
-
-    // Store the current mouse position
-    this.mouseX_ = e.clientX;
-    this.mouseY_ = e.clientY;
-
-    this.setCursor_('dragready');
-
-    // Stop the text from being selectable while being dragged
-    this.markerWrapper_.style['MozUserSelect'] = 'none';
-    this.markerWrapper_.style['KhtmlUserSelect'] = 'none';
-    this.markerWrapper_.style['WebkitUserSelect'] = 'none';
-
-    this.markerWrapper_['unselectable'] = 'on';
-    this.markerWrapper_['onselectstart'] = function() {
-      return false;
-    };
-
-    this.addDraggingListeners_();
-
-    google.maps.event.trigger(this, 'dragstart');
-  }
-};
-
-
-/**
- * Stop dragging.
- */
-RichMarker.prototype.stopDrag = function() {
-  if (!this.getDraggable()) {
-    return;
-  }
-
-  if (this.dragging_) {
-    this.dragging_ = false;
-    this.getMap().set('draggable', this.mapDraggable_);
-    this.mouseX_ = this.mouseY_ = this.mapDraggable_ = null;
-
-    // Allow the text to be selectable again
-    this.markerWrapper_.style['MozUserSelect'] = '';
-    this.markerWrapper_.style['KhtmlUserSelect'] = '';
-    this.markerWrapper_.style['WebkitUserSelect'] = '';
-    this.markerWrapper_['unselectable'] = 'off';
-    this.markerWrapper_['onselectstart'] = function() {};
-
-    this.removeDraggingListeners_();
-
-    this.setCursor_('draggable');
-    google.maps.event.trigger(this, 'dragend');
-
-    this.draw();
-  }
-};
-
-
-/**
- * Handles the drag event.
- *
- * @param {Event} e The event.
- */
-RichMarker.prototype.drag = function(e) {
-  if (!this.getDraggable() || !this.dragging_) {
-    // This object isn't draggable or we have stopped dragging
-    this.stopDrag();
-    return;
-  }
-
-  var dx = this.mouseX_ - e.clientX;
-  var dy = this.mouseY_ - e.clientY;
-
-  this.mouseX_ = e.clientX;
-  this.mouseY_ = e.clientY;
-
-  var left = parseInt(this.markerWrapper_.style['left'], 10) - dx;
-  var top = parseInt(this.markerWrapper_.style['top'], 10) - dy;
-
-  this.markerWrapper_.style['left'] = left + 'px';
-  this.markerWrapper_.style['top'] = top + 'px';
-
-  var offset = this.getOffset_();
-
-  // Set the position property and adjust for the anchor offset
-  var point = new google.maps.Point(left - offset.width, top - offset.height);
-  var projection = this.getProjection();
-  this.setPosition(projection.fromDivPixelToLatLng(point));
-
-  this.setCursor_('dragging');
-  google.maps.event.trigger(this, 'drag');
-};
-
-
-/**
- * Removes the drag listeners associated with the marker.
- *
- * @private
- */
-RichMarker.prototype.removeDragListeners_ = function() {
-  if (this.draggableListener_) {
-    google.maps.event.removeListener(this.draggableListener_);
-    delete this.draggableListener_;
-  }
-  this.setCursor_('');
-};
-
-
-/**
- * Add dragability events to the marker.
- *
- * @param {Node} node The node to apply dragging to.
- * @private
- */
-RichMarker.prototype.addDragging_ = function(node) {
-  if (!node) {
-    return;
-  }
-
-  var that = this;
-  this.draggableListener_ =
-    google.maps.event.addDomListener(node, 'mousedown', function(e) {
-      that.startDrag(e);
-    });
-
-  this.setCursor_('draggable');
-};
-
-
-/**
- * Add dragging listeners.
- *
- * @private
- */
-RichMarker.prototype.addDraggingListeners_ = function() {
-  var that = this;
-  if (this.markerWrapper_.setCapture) {
-    this.markerWrapper_.setCapture(true);
-    this.draggingListeners_ = [
-      google.maps.event.addDomListener(this.markerWrapper_, 'mousemove', function(e) {
-        that.drag(e);
-      }, true),
-      google.maps.event.addDomListener(this.markerWrapper_, 'mouseup', function() {
-        that.stopDrag();
-        that.markerWrapper_.releaseCapture();
-      }, true)
-    ];
-  } else {
-    this.draggingListeners_ = [
-      google.maps.event.addDomListener(window, 'mousemove', function(e) {
-        that.drag(e);
-      }, true),
-      google.maps.event.addDomListener(window, 'mouseup', function() {
-        that.stopDrag();
-      }, true)
-    ];
-  }
-};
-
-
-/**
- * Remove dragging listeners.
- *
- * @private
- */
-RichMarker.prototype.removeDraggingListeners_ = function() {
-  if (this.draggingListeners_) {
-    for (var i = 0, listener; listener = this.draggingListeners_[i]; i++) {
-      google.maps.event.removeListener(listener);
-    }
-    this.draggingListeners_.length = 0;
   }
 };
 
@@ -676,8 +425,7 @@ RichMarker.prototype.onAdd = function() {
 
   this.ready_ = true;
   this.content_changed();
-  this.draggable_changed();
-
+  
   var panes = this.getPanes();
   if (panes) {
     panes.overlayMouseTarget.appendChild(this.markerWrapper_);
@@ -692,7 +440,7 @@ RichMarker.prototype['onAdd'] = RichMarker.prototype.onAdd;
  * Impelementing the interface.
  */
 RichMarker.prototype.draw = function() {
-  if (!this.ready_ || this.dragging_) {
+  if (!this.ready_) {
     return;
   }
 
@@ -732,7 +480,6 @@ RichMarker.prototype.onRemove = function() {
   if (this.markerWrapper_ && this.markerWrapper_.parentNode) {
     this.markerWrapper_.parentNode.removeChild(this.markerWrapper_);
   }
-  this.removeDragListeners_();
 };
 RichMarker.prototype['onRemove'] = RichMarker.prototype.onRemove;
 
