@@ -5,7 +5,6 @@
 // ==/ClosureCompiler==
 
 /**
- * Línea de contenido para saber que soy yo
  * @license
  * Copyright 2013 Google Inc. All Rights Reserved.
  *
@@ -46,10 +45,6 @@ function RichMarker(opt_options) {
 
   if (opt_options['visible'] == undefined) {
     opt_options['visible'] = true;
-  }
-
-  if (opt_options['shadow'] == undefined) {
-    opt_options['shadow'] = '7px -3px 5px rgba(88,88,88,0.7)';
   }
 
   if (opt_options['anchor'] == undefined) {
@@ -97,28 +92,6 @@ RichMarker.prototype['visible_changed'] = RichMarker.prototype.visible_changed;
 
 
 /**
- * Sets the marker to be flat.
- *
- * @param {boolean} flat If the marker is to be flat or not.
- */
-RichMarker.prototype.setFlat = function(flat) {
-  this.set('flat', !!flat);
-};
-RichMarker.prototype['setFlat'] = RichMarker.prototype.setFlat;
-
-
-/**
- * If the makrer is flat or not.
- *
- * @return {boolean} True the marker is flat.
- */
-RichMarker.prototype.getFlat = function() {
-  return /** @type {boolean} */ (this.get('flat'));
-};
-RichMarker.prototype['getFlat'] = RichMarker.prototype.getFlat;
-
-
-/**
  * Get the width of the marker.
  *
  * @return {Number} The width of the marker.
@@ -138,45 +111,6 @@ RichMarker.prototype.getHeight = function() {
   return /** @type {Number} */ (this.get('height'));
 };
 RichMarker.prototype['getHeight'] = RichMarker.prototype.getHeight;
-
-
-/**
- * Sets the marker's box shadow.
- *
- * @param {string} shadow The box shadow to set.
- */
-RichMarker.prototype.setShadow = function(shadow) {
-  this.set('shadow', shadow);
-  this.flat_changed();
-};
-RichMarker.prototype['setShadow'] = RichMarker.prototype.setShadow;
-
-
-/**
- * Gets the marker's box shadow.
- *
- * @return {string} The box shadow.
- */
-RichMarker.prototype.getShadow = function() {
-  return /** @type {string} */ (this.get('shadow'));
-};
-RichMarker.prototype['getShadow'] = RichMarker.prototype.getShadow;
-
-
-/**
- * Flat changed event.
- */
-RichMarker.prototype.flat_changed = function() {
-  if (!this.ready_) {
-    return;
-  }
-
-  this.markerWrapper_.style['boxShadow'] =
-      this.markerWrapper_.style['webkitBoxShadow'] =
-      this.markerWrapper_.style['MozBoxShadow'] =
-      this.getFlat() ? '' : this.getShadow();
-};
-RichMarker.prototype['flat_changed'] = RichMarker.prototype.flat_changed;
 
 
 /**
@@ -742,7 +676,6 @@ RichMarker.prototype.onAdd = function() {
 
   this.ready_ = true;
   this.content_changed();
-  this.flat_changed();
   this.draggable_changed();
 
   var panes = this.getPanes();
