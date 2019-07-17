@@ -86,6 +86,17 @@ RichMarker.prototype['visible_changed'] = RichMarker.prototype.visible_changed;
 
 
 /**
+ * Whether the marker is draggable or not.
+ *
+ * @return {boolean} True if the marker is draggable.
+ */
+RichMarker.prototype.getDraggable = function() {
+  return /** @type {boolean} */ false;
+};
+RichMarker.prototype['getDraggable'] = RichMarker.prototype.getDraggable;
+
+
+/**
  * Get the width of the marker.
  *
  * @return {Number} The width of the marker.
